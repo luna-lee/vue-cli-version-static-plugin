@@ -9,7 +9,7 @@ module.exports = function (terserOptions = {}) {
       },
       ...terserOptions
     },
-    ...(TerserPlugin.terserMinify.getMinimizerVersion() > "4" ? {} : { cache: false }),
+    ...(TerserPlugin.terserMinify && TerserPlugin.terserMinify.getMinimizerVersion() > "4" ? {} : { cache: false }),
 
     minify: async (file, sourceMap, minimizerOptions) => {
       const extractedComments = [];
