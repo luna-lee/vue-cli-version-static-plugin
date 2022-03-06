@@ -5,26 +5,22 @@ module.exports = function (terserOptions = {}) {
       compress: {
         drop_console: true, //console
         drop_debugger: false,
-        pure_funcs: ["console.log"],
+        pure_funcs: ["console.log"]
       },
-      ...terserOptions,
+      ...terserOptions
     },
-    cache: false,
+    ...(TerserPlugin.terserMinify.getMinimizerVersion() > "4" ? {} : { cache: false }),
+
     minify: async (file, sourceMap, minimizerOptions) => {
       const extractedComments = [];
       const { minify: terserMinify } = require("terser");
       const result = await terserMinify(file, minimizerOptions);
-      const isProd =
-        process.env.NODE_ENV === "prod" ||
-        process.env.NODE_ENV === "production";
+      const isProd = process.env.NODE_ENV === "prod" || process.env.NODE_ENV === "production";
       if (isProd) {
         let reg = new RegExp(process.env.RegExpStr, "g");
-        result.code = result.code.replace(
-          reg,
-          process.env.JsCssStaticReplaceDir
-        );
+        result.code = result.code.replace(reg, process.env.JsCssStaticReplaceDir);
       }
       return { ...result, extractedComments };
-    },
+    }
   });
 };
