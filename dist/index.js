@@ -82,14 +82,7 @@ module.exports.VersionPlugin = class VersionPlugin {
       if (this.option.versionControl)
         // 将打包后的js，css 生成动态script，保存到对应assetsDir文件目录下souceMap.js中。
         compiler.hooks.compilation.tap("VersionPlugin", (compilation) => {
-          //老版本
-          /*  compilation.plugin(
-             "html-webpack-plugin-before-html-processing",
-             function (htmlPluginData) {
-                saveFile(  htmlPluginData.assets);
-             }
-           ); */
-          compilation.hooks[methodName].tap(methodName, (htmlPluginData) => {
+          compilation.hooks.htmlWebpackPluginAlterAssetTags.tap("htmlWebpackPluginAlterAssetTags", (htmlPluginData) => {
             saveFile(compiler.outputPath, {
               head: htmlPluginData.head,
               body: htmlPluginData.body
