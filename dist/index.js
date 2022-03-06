@@ -10,8 +10,9 @@ const isProd = process.env.NODE_ENV === "prod" || process.env.NODE_ENV === "prod
 //版本号
 module.exports.VersionCode = generatorVersionCode();
 
-// 重写css压缩插件
-require("./AddCssSataticDir.js");
+// 重写css压缩插件,vuecli 4.x的时候才加载因为5.x后css中不在支持直接使用静态资源
+if (!require("@vue/cli-service").defineConfig) require("./AddCssSataticDir.js");
+
 module.exports.VersionPlugin = class VersionPlugin {
   constructor(option = {}) {
     /**
