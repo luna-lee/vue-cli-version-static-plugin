@@ -160,15 +160,22 @@ function saveFile(outputDir, assets) {
   let sourceMapFilePath = path.join(outputDir, process.env.StaticAssetsDir, "/sourceMap.js");
   let loadSource = `
        var sourceMap= ${JSON.stringify(assets)};
-       ;(function () {
-        window.onload = function () {
-          sourceMap.head.forEach(function (tag) {
-            createHtmlTag(tag, "head");
-          });
-          sourceMap.body.forEach(function (tag) {
-            createHtmlTag(tag, "body");
-          });
-        };
+       (function () {
+        sourceMap.head.forEach(function (tag) {
+          createHtmlTag(tag, "head");
+        });
+        LoadBodySource()
+        document.onreadystatechange = function () {
+          LoadBodySource()
+        }
+        /* 加载资源 */
+        function LoadBodySource() {
+          if (document.readyState === 'complete') {
+            sourceMap.body.forEach(function (tag) {
+              createHtmlTag(tag, "body");
+            });
+          }
+        }
         function createHtmlTag(tagDefinition, position) {
           let tag = document.createElement(tagDefinition.tagName);
           Object.keys(tagDefinition.attributes || {}).forEach(function (attr) {
