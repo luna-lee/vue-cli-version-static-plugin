@@ -22,14 +22,32 @@ module.exports.VersionPlugin = class VersionPlugin {
      * @versionControl 版本控制开启，开启后会自动复制指定路径上的config文件到public中，同时生成sourcMap文件，关闭htmlplugin的inject功能
      * @terserOptions  terser 压缩参数
      * @to  config 配置文件将要拷贝的路径。默认public/config/index.js
-     * @from config 配置文件的来源路径。默认config/index-${process.env.NODE_ENV}.js
+     * @from config 配置文件的来源路径。默认config/index-${args.mode || process.env.NODE_ENV}.js  若指定mode则取对应mode名对应的配置文件，否则取NODE_ENV对应的配置文件
+     * 
      */
+    const rawArgv = process.argv.slice(2)
+    const args = require('minimist')(rawArgv, {
+      boolean: [
+        // build
+        'modern',
+        'report',
+        'report-json',
+        'inline-vue',
+        'watch',
+        // serve
+        'open',
+        'copy',
+        'https',
+        // inspect
+        'verbose'
+      ]
+    })
     this.option = {
       publicStaticFolderName: "static",
       merge: true,
       versionControl: true,
       to: "public/config/index.js",
-      from: `config/index-${process.env.NODE_ENV}.js`,
+      from: `config/index-${args.mode || process.env.NODE_ENV}.js`,
       ...option
     };
   }
@@ -219,7 +237,7 @@ function copyStaticDir(src, dest) {
   fs.pathExists(src).then((exists) => {
     if (exists) {
       fs.ensureDir(dest).then(() => {
-        fs.copy(src, dest, function () {});
+        fs.copy(src, dest, function () { });
       });
     }
   });
