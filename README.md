@@ -6,6 +6,9 @@
 -   publicStaticFolderName：public文件夹下静态资源目录文件夹名。若有嵌套则需要将父文件夹名也带上，如：'project1/static'。 默认static
 -   merge：public文件夹下静态资源是否与assets打包后的文件合并。不合并则单独存放一个文件夹，文件夹结构和名称与public中一致。默认true
 -   versionControl：开启版本控制开启，开启后会自动复制指定路径上的config文件到public中，同时生成sourcMap文件，关闭htmlplugin的inject功能，默认true
+-   @dynamicPublicPath  通过配置，动态设置publicPath  ，true/false。 vue.config文件中不要设置publicPath。在mian.js中添加
+    ```if (window.SITE_CONFIG["publicPath"]__webpack_public_path__ = window.SITE_CONFIG["publicPath"]```
+    **注意：当设置了dynamicPublicPath为true时，不要再css文件中应用publich中的静态资源**
 -   to：  config 配置文件将要拷贝的路径。在versionControl为true时起作用。默认public/config/index.js
 -   from： config 配置文件的来源路径。在versionControl为true时起作用。默认config/index-${process.env.NODE_ENV}.js
 # 使用方式
@@ -18,3 +21,4 @@
 
 # 注意事项
 - terser-webpack-plugin 版本需要4.x以上
+- vuecli 4.x 对应的htmlWebpackPlugin也必须是4.x
