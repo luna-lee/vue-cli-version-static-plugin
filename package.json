@@ -1,9 +1,9 @@
 {
   "name": "vue-cli-version-static-plugin",
-  "version": "2.1.3",
+  "version": "2.1.5",
   "description": "",
   "main": "dist/index.js",
-  "homepage": "https: //github.com/1724956493/vue-cli-version-static-plugin",
+  "homepage": "https://gitee.com/ryfn-lip/vue-cli-version-static-plugin.git",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
