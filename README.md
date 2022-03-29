@@ -8,7 +8,8 @@
 -   versionControl：开启版本控制开启，开启后会自动复制指定路径上的config文件到public中，同时生成sourcMap文件，关闭htmlplugin的inject功能，默认true
 -   @dynamicPublicPath  通过配置，动态设置publicPath  ，true/false。 vue.config文件中不要设置publicPath。在mian.js中添加
     ```if (window.SITE_CONFIG["publicPath"]__webpack_public_path__ = window.SITE_CONFIG["publicPath"]```
-    **注意：当设置了dynamicPublicPath为true时，不要再css文件中应用publich中的静态资源**
+    ```config 文件中添加  window.SITE_CONFIG["publicPath"]配置```
+    **注意：当设置了dynamicPublicPath为true时，不要再css文件中应用publich中的静态资源，js，vue文件中使用必须手动加上window.SITE_CONFIG["publicPath"]**
 -   to：  config 配置文件将要拷贝的路径。在versionControl为true时起作用。默认public/config/index.js
 -   from： config 配置文件的来源路径。在versionControl为true时起作用。默认config/index-${process.env.NODE_ENV}.js
 # 使用方式
