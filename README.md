@@ -17,7 +17,7 @@
 - VersionPlugin 直接在configureWebpack中添加到插件中。 config.plugins.push(new VersionPlugin());
 - VersionCode 赋值给 assetsDir，也可以在前面拼接自定义名称或文件夹名 assetsDir: VersionCode 或 'static/'+VersionCode
 - 最后在public中的index.html模板文件中引入config文件
-- 若htmlplugin中的option设置了cdn，则会对cdn中的所有绝对引用路径与js，css做相同处理
+- 若htmlplugin中的option设置了cdn，则会对cdn中的所有绝对引用路径与js，css做相同处理。同时对绝对引用路径支持动态指定publicPath
 
 # 注意事项
 - terser-webpack-plugin 版本需要4.x以上

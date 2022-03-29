@@ -54,6 +54,7 @@ module.exports.VersionPlugin = class VersionPlugin {
   }
   apply(compiler) {
     const vueConfig = getVueConfig();
+    let cdnStatic = { js: [], css: [] }
     process.env.PublicPath = compiler.options.output.publicPath;
     process.env.StaticAssetsDir = vueConfig.assetsDir || "";
     process.env.dynamicPublicPath = !!this.option.dynamicPublicPath || false
@@ -100,24 +101,52 @@ module.exports.VersionPlugin = class VersionPlugin {
             patterns[0].ignore && patterns[0].ignore.push(path.relative("public", this.option.to));
           }
         }
-        // 设置 HtmlPlugin的inject为false
-        if (pluginClass.constructor.name == "HtmlWebpackPlugin") {
-          if (this.option.versionControl && isProd) {
-            // vuecli 4
-            if (pluginClass.options) pluginClass.options.inject = false;
-            // vuecli 5
-            if (pluginClass.userOptions) pluginClass.userOptions.inject = false;
+        // 设置 HtmlPlugin的inject为false,对cdn中的内容进行配置
+        if (pluginClass.constructor.name == "HtmlWebpackPlugin" && isProd) {
+          // vuecli 4 vuecli 5
+          let options = pluginClass.options || pluginClass.userOptions
+          if (this.option.versionControl) {
+            options.inject = false;
           }
-          // vuecli 4
-          // 生成环境,若HtmlPlugin中有cdn配置，则将里面的所有的绝对路径的引用资源路径上，加上/public+StaticAssetsDir
-          if (pluginClass.options && pluginClass.options.cdn && isProd) {
-            let reg = new RegExp(process.env.RegExpStr, "g");
-            pluginClass.options.cdn = JSON.parse(JSON.stringify(pluginClass.options.cdn).replace(reg, process.env.JsCssStaticReplaceDir));
-          }
-          // vuecli 5
-          if (pluginClass.userOptions && pluginClass.userOptions.cdn && isProd) {
-            let reg = new RegExp(process.env.RegExpStr, "g");
-            pluginClass.userOptions.cdn = JSON.parse(JSON.stringify(pluginClass.userOptions.cdn).replace(reg, process.env.JsCssStaticReplaceDir));
+          let reg = new RegExp(process.env.RegExpStr, "g");
+          // 若开启了dynamicPublicPath，则需要把cdn里static目录下的文件提取出来，放入souceMap中，通过js动态导入
+          if (this.option.dynamicPublicPath) {
+            let cdnObj = options.cdn
+            let httpCdn = {}
+            cdnStatic = Object.keys(cdnObj).reduce((obj, key) => {
+              cdnObj[key].forEach(item => {
+                if (reg.test(JSON.stringify(item))) {
+                  item = JSON.parse(JSON.stringify(item).replace(reg, process.env.JsCssStaticReplaceDir))
+                  if (!obj[key]) obj[key] = []
+                  if (key == 'css') {
+                    obj[key].push({
+                      tagName: 'link',
+                      attributes: {
+                        type: "text/css",
+                        rel: "stylesheet",
+                        href: item
+                      }
+                    })
+                  }
+                  if (key == 'js') {
+                    obj[key].push({
+                      tagName: 'script',
+                      attributes: {
+                        type: 'text/javascript',
+                        src: item,
+                      }
+                    })
+                  }
+                } else {
+                  if (!httpCdn[key]) httpCdn[key] = []
+                  httpCdn[key].push(item)
+                }
+              })
+              return obj
+            }, { css: [], js: [] })
+            options.cdn = httpCdn
+          } else {
+            options.cdn = JSON.parse(JSON.stringify(options.cdn).replace(reg, process.env.JsCssStaticReplaceDir));
           }
         }
       });
@@ -135,16 +164,16 @@ module.exports.VersionPlugin = class VersionPlugin {
           if (HtmlWebpackPlugin.version > 4)
             HtmlWebpackPlugin.getHooks(compilation).alterAssetTagGroups.tap("alterAssetTagGroups ", (htmlPluginData) => {
               saveFile(compiler.outputPath, {
-                head: htmlPluginData.headTags,
-                body: htmlPluginData.bodyTags
+                head: [...cdnStatic.css, ...htmlPluginData.headTags],
+                body: [...cdnStatic.js, ...htmlPluginData.bodyTags]
               });
             });
           else
             compilation.hooks.htmlWebpackPluginAlterAssetTags &&
               compilation.hooks.htmlWebpackPluginAlterAssetTags.tap("htmlWebpackPluginAlterAssetTags", (htmlPluginData) => {
                 saveFile(compiler.outputPath, {
-                  head: htmlPluginData.head,
-                  body: htmlPluginData.body
+                  head: [...cdnStatic.css, ...htmlPluginData.head],
+                  body: [...cdnStatic.js, ...htmlPluginData.body]
                 });
               });
         }
@@ -180,38 +209,38 @@ function saveFile(outputDir, assets) {
   let addDynamicPublicPath = '';
   if (process.env.dynamicPublicPath == 'true')
     addDynamicPublicPath = `
-     if(window.SITE_CONFIG["publicPath"]&&(attr=='href'||attr=='src')) {
-       tagDefinition.attributes[attr]="/" + window.SITE_CONFIG["publicPath"] +tagDefinition.attributes[attr]
-       tagDefinition.attributes[attr]=tagDefinition.attributes[attr].replace(new RegExp("//", "g"),"/")
-   }
- `
+      if(window.SITE_CONFIG["publicPath"]&&(attr=='href'||attr=='src')) {
+        tagDefinition.attributes[attr]="/" + window.SITE_CONFIG["publicPath"] +tagDefinition.attributes[attr]
+        tagDefinition.attributes[attr]=tagDefinition.attributes[attr].replace(new RegExp("//", "g"),"/")
+    }
+  `
   let loadSource = `
-        var sourceMap= ${JSON.stringify(assets)};
-        (function () {
-         sourceMap.head.forEach(function (tag) {
-           createHtmlTag(tag, "head");
-         });
-         LoadBodySource()
-         document.onreadystatechange = function () {
-           LoadBodySource()
-         }
-         /* 加载资源 */
-         function LoadBodySource() {
-           if (document.readyState === 'complete') {
-             sourceMap.body.forEach(function (tag) {
-               createHtmlTag(tag, "body");
-             });
-           }
-         }
-         function createHtmlTag(tagDefinition, position) {
-           let tag = document.createElement(tagDefinition.tagName);
-           Object.keys(tagDefinition.attributes || {}).forEach(function (attr) {
-            ${addDynamicPublicPath}
-             tag.setAttribute(attr, tagDefinition.attributes[attr]);
-           });
-           document.getElementsByTagName(position)[0].appendChild(tag);
-         }
-       })();`;
+         var sourceMap= ${JSON.stringify(assets)};
+         (function () {
+          sourceMap.head.forEach(function (tag) {
+            createHtmlTag(tag, "head");
+          });
+          LoadBodySource()
+          document.onreadystatechange = function () {
+            LoadBodySource()
+          }
+          /* 加载资源 */
+          function LoadBodySource() {
+            if (document.readyState === 'complete') {
+              sourceMap.body.forEach(function (tag) {
+                createHtmlTag(tag, "body");
+              });
+            }
+          }
+          function createHtmlTag(tagDefinition, position) {
+            let tag = document.createElement(tagDefinition.tagName);
+            Object.keys(tagDefinition.attributes || {}).forEach(function (attr) {
+             ${addDynamicPublicPath}
+              tag.setAttribute(attr, tagDefinition.attributes[attr]);
+            });
+            document.getElementsByTagName(position)[0].appendChild(tag);
+          }
+        })();`;
   fs.ensureFile(sourceMapFilePath).then(() => {
     fs.writeFileSync(sourceMapFilePath, loadSource);
   });
@@ -228,14 +257,14 @@ function copyConfigFile({ to, from }) {
         SITE_CONFIG = "window.SITE_CONFIG={}";
       }
       data = `
-     ${data.toString()}
-     ${SITE_CONFIG}
-     // 版本号(年月日时分) 打包时会自动加上
-     window.SITE_CONFIG['version'] = '${process.env.StaticAssetsDir}'
-     //生产环境可以通过 window.SITE_CONFIG['version']加载指定版本项目
-     var script = document.createElement('script')
-     script.src = window.SITE_CONFIG['version'] + "/sourceMap.js"
-     document.getElementsByTagName('head')[0].appendChild(script)`;
+      ${data.toString()}
+      ${SITE_CONFIG}
+      // 版本号(年月日时分) 打包时会自动加上
+      window.SITE_CONFIG['version'] = '${process.env.StaticAssetsDir}'
+      //生产环境可以通过 window.SITE_CONFIG['version']加载指定版本项目
+      var script = document.createElement('script')
+      script.src = window.SITE_CONFIG['version'] + "/sourceMap.js"
+      document.getElementsByTagName('head')[0].appendChild(script)`;
     }
     fs.ensureFile(ConfigFile).then(() => {
       fs.writeFileSync(ConfigFile, data);
