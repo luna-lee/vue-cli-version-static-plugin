@@ -18,12 +18,12 @@ module.exports.VersionPlugin = class VersionPlugin {
     /**
      * option 属性
      * @publicStaticFolderName default static
-     * @merge  default false
+     * @merge  default false 将public中指定的静态资源，以合并的方式复制到指定打包目录下，还是整个文件夹拷贝
      * @versionControl 版本控制开启，开启后会自动复制指定路径上的config文件到public中，同时生成sourcMap文件，关闭htmlplugin的inject功能
      * @terserOptions  terser 压缩参数
+     * @dynamicPublicPath  通过配置，动态设置publicPath  ，true/false。 vue.config文件中不要设置publicPath。在mian.js中添加if (window.SITE_CONFIG["publicPath"])__webpack_public_path__ = window.SITE_CONFIG["publicPath"]
      * @to  config 配置文件将要拷贝的路径。默认public/config/index.js
      * @from config 配置文件的来源路径。默认config/index-${args.mode || process.env.NODE_ENV}.js  若指定mode则取对应mode名对应的配置文件，否则取NODE_ENV对应的配置文件
-     * 
      */
     const rawArgv = process.argv.slice(2)
     const args = require('minimist')(rawArgv, {
@@ -46,6 +46,7 @@ module.exports.VersionPlugin = class VersionPlugin {
       publicStaticFolderName: "static",
       merge: true,
       versionControl: true,
+      dynamicPublicPath: false,
       to: "public/config/index.js",
       from: `config/index-${args.mode || process.env.NODE_ENV}.js`,
       ...option
@@ -55,7 +56,7 @@ module.exports.VersionPlugin = class VersionPlugin {
     const vueConfig = getVueConfig();
     process.env.PublicPath = compiler.options.output.publicPath;
     process.env.StaticAssetsDir = vueConfig.assetsDir || "";
-    process.env.VersionPluginOption = this.option;
+    process.env.dynamicPublicPath = !!this.option.dynamicPublicPath || false
     // js css 中对静态文件路径替换规则
     process.env.RegExpStr = `(?<=['"\`(])\\s*/${this.option.publicStaticFolderName}/`;
     // js css 中对静态文件路径替换的目标路径
@@ -176,32 +177,41 @@ function getVueConfig() {
 //生成sourceMap文件
 function saveFile(outputDir, assets) {
   let sourceMapFilePath = path.join(outputDir, process.env.StaticAssetsDir, "/sourceMap.js");
+  let addDynamicPublicPath = '';
+  if (process.env.dynamicPublicPath == 'true')
+    addDynamicPublicPath = `
+     if(window.SITE_CONFIG["publicPath"]&&(attr=='href'||attr=='src')) {
+       tagDefinition.attributes[attr]="/" + window.SITE_CONFIG["publicPath"] +tagDefinition.attributes[attr]
+       tagDefinition.attributes[attr]=tagDefinition.attributes[attr].replace(new RegExp("//", "g"),"/")
+   }
+ `
   let loadSource = `
-       var sourceMap= ${JSON.stringify(assets)};
-       (function () {
-        sourceMap.head.forEach(function (tag) {
-          createHtmlTag(tag, "head");
-        });
-        LoadBodySource()
-        document.onreadystatechange = function () {
-          LoadBodySource()
-        }
-        /* 加载资源 */
-        function LoadBodySource() {
-          if (document.readyState === 'complete') {
-            sourceMap.body.forEach(function (tag) {
-              createHtmlTag(tag, "body");
-            });
-          }
-        }
-        function createHtmlTag(tagDefinition, position) {
-          let tag = document.createElement(tagDefinition.tagName);
-          Object.keys(tagDefinition.attributes || {}).forEach(function (attr) {
-            tag.setAttribute(attr, tagDefinition.attributes[attr]);
-          });
-          document.getElementsByTagName(position)[0].appendChild(tag);
-        }
-      })();`;
+        var sourceMap= ${JSON.stringify(assets)};
+        (function () {
+         sourceMap.head.forEach(function (tag) {
+           createHtmlTag(tag, "head");
+         });
+         LoadBodySource()
+         document.onreadystatechange = function () {
+           LoadBodySource()
+         }
+         /* 加载资源 */
+         function LoadBodySource() {
+           if (document.readyState === 'complete') {
+             sourceMap.body.forEach(function (tag) {
+               createHtmlTag(tag, "body");
+             });
+           }
+         }
+         function createHtmlTag(tagDefinition, position) {
+           let tag = document.createElement(tagDefinition.tagName);
+           Object.keys(tagDefinition.attributes || {}).forEach(function (attr) {
+            ${addDynamicPublicPath}
+             tag.setAttribute(attr, tagDefinition.attributes[attr]);
+           });
+           document.getElementsByTagName(position)[0].appendChild(tag);
+         }
+       })();`;
   fs.ensureFile(sourceMapFilePath).then(() => {
     fs.writeFileSync(sourceMapFilePath, loadSource);
   });
@@ -218,14 +228,14 @@ function copyConfigFile({ to, from }) {
         SITE_CONFIG = "window.SITE_CONFIG={}";
       }
       data = `
-    ${data.toString()}
-    ${SITE_CONFIG}
-    // 版本号(年月日时分) 打包时会自动加上
-    window.SITE_CONFIG['version'] = '${process.env.StaticAssetsDir}'
-    //生产环境可以通过 window.SITE_CONFIG['version']加载指定版本项目
-    var script = document.createElement('script')
-    script.src = window.SITE_CONFIG['version'] + "/sourceMap.js"
-    document.getElementsByTagName('head')[0].appendChild(script)`;
+     ${data.toString()}
+     ${SITE_CONFIG}
+     // 版本号(年月日时分) 打包时会自动加上
+     window.SITE_CONFIG['version'] = '${process.env.StaticAssetsDir}'
+     //生产环境可以通过 window.SITE_CONFIG['version']加载指定版本项目
+     var script = document.createElement('script')
+     script.src = window.SITE_CONFIG['version'] + "/sourceMap.js"
+     document.getElementsByTagName('head')[0].appendChild(script)`;
     }
     fs.ensureFile(ConfigFile).then(() => {
       fs.writeFileSync(ConfigFile, data);
