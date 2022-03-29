@@ -11,7 +11,7 @@
     ```config 文件中添加  window.SITE_CONFIG["publicPath"]配置```<br/><br/>
     **注意：当设置了dynamicPublicPath为true时，不要再css文件中应用publich中的静态资源，<br/>js，vue文件中使用必须手动加上window.SITE_CONFIG["publicPath"]**<br/><br/>
 -   to：  config 配置文件将要拷贝的路径。在versionControl为true时起作用。默认public/config/index.js<br/><br/>
--   from： config 配置文件的来源路径。在versionControl为true时起作用。默认config/index-${args.mode ||process.env.NODE_ENV}.js 
+-   from： config 配置文件的来源路径。在versionControl为true时起作用。默认config/index-${args.config ||process.env.NODE_ENV}.js 
 	<br/>**不同环境的配置通过--mode 来指定**
 # 使用方式
 - 在vue.config.js中引入VersionPlugin
@@ -63,11 +63,11 @@ configureWebpack: (config) => {
 }
 }
 //package.json
-// 通过mode适配不同配置,默认通过NEV来适配
+// 通过config适配不同配置,默认为当前process.env.NODE_ENV值，对应config 文件夹下的index-{name}文件
  "scripts": {
     "serve": "vue-cli-service serve --open",
     "build": "vue-cli-service build --no-clean --report",
-    "qa": "vue-cli-service build --no-clean --report --mode qa"
+    "qa": "vue-cli-service build --no-clean --report --config qa"
   }
 //main.js dynamicPublicPath设置true时
 if (window.SITE_CONFIG["publicPath"])

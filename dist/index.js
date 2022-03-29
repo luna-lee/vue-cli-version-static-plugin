@@ -23,7 +23,7 @@
       * @terserOptions  terser 压缩参数
       * @dynamicPublicPath  通过配置，动态设置publicPath  ，true/false。 vue.config文件中不要设置publicPath。在mian.js中添加if (window.SITE_CONFIG["publicPath"])__webpack_public_path__ = window.SITE_CONFIG["publicPath"]
       * @to  config 配置文件将要拷贝的路径。默认public/config/index.js
-      * @from config 配置文件的来源路径。默认config/index-${args.mode || process.env.NODE_ENV}.js  若指定mode则取对应mode名对应的配置文件，否则取NODE_ENV对应的配置文件
+      * @from config 配置文件的来源路径。默认config/index-${args.config || process.env.NODE_ENV}.js  若指定mode则取对应mode名对应的配置文件，否则取NODE_ENV对应的配置文件
       */
      const rawArgv = process.argv.slice(2)
      const args = require('minimist')(rawArgv, {
@@ -48,7 +48,7 @@
        versionControl: true,
        dynamicPublicPath: false,
        to: "public/config/index.js",
-       from: `config/index-${args.mode || process.env.NODE_ENV}.js`,
+       from: `config/index-${args.config || process.env.NODE_ENV}.js`,
        ...option
      };
    }
