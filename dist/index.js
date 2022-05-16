@@ -108,6 +108,8 @@
            if (this.option.versionControl) {
              options.inject = false;
            }
+          //没有cdn则返回
+           if (!options.cdn) return
            let reg = new RegExp(process.env.RegExpStr, "g");
            // 若开启了dynamicPublicPath，则需要把cdn里static目录下的文件提取出来，放入souceMap中，通过js动态导入
            if (this.option.dynamicPublicPath) {
