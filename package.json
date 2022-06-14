@@ -1,6 +1,6 @@
 {
   "name": "vue-cli-version-static-plugin",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "",
   "main": "dist/index.js",
   "homepage": "https://gitee.com/ryfn-lip/vue-cli-version-static-plugin.git",
