@@ -2,17 +2,25 @@
 - 为实现vuecli脚手架打包后，项目可以通过手动切换版本号来控制客户端具体展示页面，这在当前端页面出错，服务器上直接修改静态资源版本号来还原/回滚到之前代码。而不需要重新编译！
 - 为解决vuecli项目中直接引用public中的static资源打包后无法正确展示的问题。
 
+# 更新日志
+### v2.2.0
+- from 参数默认文件名，移除前缀“index-”
+- from 参数可以传递数组，实现多个来源合并。
+- 生成的配置文件内容自动用(function(){...})包裹
+### v2.1.7
+- 修复css 独立打包且在相对路径下对静态资源的引用的bug
+
+### v2.1.6
+- 修复没有配置cdn时运行报错的bug
 # 参数
--   publicStaticFolderName：public文件夹下静态资源目录文件夹名。若有嵌套则需要将父文件夹名也带上，如：'project1/static'。 默认static<br/><br/>
--   merge：public文件夹下静态资源是否与assets打包后的文件合并。不合并则单独存放一个文件夹，文件夹结构和名称与public中一致。默认true<br/><br/>
--   versionControl：开启版本控制开启，开启后会自动复制指定路径上的config文件到public中，同时生成sourcMap文件，关闭htmlplugin的inject功能，默认true<br/><br/>
--   dynamicPublicPath  通过配置，动态设置publicPath  ，true/false。 vue.config文件中不要设置publicPath。在mian.js中添加<br/>
-    ```if (window.SITE_CONFIG["publicPath"]__webpack_public_path__ = window.SITE_CONFIG["publicPath"]```<br/>
-    ```config 文件中添加  window.SITE_CONFIG["publicPath"]配置```<br/><br/>
-    **注意：当设置了dynamicPublicPath为true时，不要再css文件中应用publich中的静态资源，<br/>js，vue文件中使用必须手动加上window.SITE_CONFIG["publicPath"]**<br/><br/>
--   to：  config 配置文件将要拷贝的路径。在versionControl为true时起作用。默认public/config/index.js<br/><br/>
--   from： config 配置文件的来源路径。在versionControl为true时起作用。默认config/index-${args.config ||process.env.NODE_ENV}.js 
-	<br/>**不同环境的配置通过--mode 来指定**
+名称|类型|说明|默认值
+---|---|---|--
+publicStaticFolderName|string|public文件夹下静态资源目录文件夹名。若有嵌套则需要将父文件夹名也带上，如：'project/static'|static
+merge|boolean|public文件夹下静态资源是否与assets打包后的文件合并。不合并则单独存放一个文件夹，文件夹结构和名称与public中一致。 |true
+versionControl|boolean|开启版本控制开启，开启后会自动复制指定路径上的config文件到public中，同时生成sourcMap文件，关闭htmlplugin的inject功能， |true 
+to|string|config 配置文件将要拷贝的路径。在versionControl为true时起作用 |public/config/index.js
+from|string/Array|config 配置文件的来源路径。在versionControl为true时起作用。可以配置多个来源文件路径|config/${args.config \|\|process.env.NODE_ENV}.js  **args为脚本命令中的参数对象**
+dynamicPublicPath |boolean| 通过配置，动态设置publicPath,<br/> 开启后 vue.config文件中不要设置publicPath。<br/> 在mian.js中添加 ```if (window.SITE_CONFIG["publicPath"]__webpack_public_path__ = window.SITE_CONFIG["publicPath"]```<br/> config 文件中添加   ```  window.SITE_CONFIG["publicPath"]配置```<br/>  **注意：当设置了dynamicPublicPath为true时，不要在css文件中应用publich中的静态资源。<br/>js，vue文件中使用必须手动加上window.SITE_CONFIG["publicPath"]**<br/>|false
 # 使用方式
 - 在vue.config.js中引入VersionPlugin
 
@@ -26,6 +34,17 @@
 
 - 若htmlplugin中的option设置了cdn，则会对cdn中的所有绝对引用路径与js，css做相同处理。同时对绝对引用路径支持动态指定publicPath
 
+# 不同环境配置
+-  默认取当前NODE_ENV值
+ "scripts": {
+    "serve": "vue-cli-service serve", 
+    "build": "vue-cli-service build --report"
+  },
+ - 指定配置文件名称 ,根目录下的config文件夹中需要存在local.js和test.js文件，若没有会自动建立
+ "scripts": {
+    "local": "vue-cli-service serve --config local",  
+    "test": "vue-cli-service serve --config test"
+  },
 # 注意事项
 - terser-webpack-plugin 版本需要4.x以上
 

@@ -48,7 +48,7 @@ module.exports.VersionPlugin = class VersionPlugin {
             versionControl: true,
             dynamicPublicPath: false,
             to: 'public/config/index.js',
-            from: `config/index-${args.config || process.env.NODE_ENV}.js`,
+            from: `config/${args.config || process.env.NODE_ENV}.js`,
             ...option
         };
     }
@@ -63,7 +63,9 @@ module.exports.VersionPlugin = class VersionPlugin {
         // js 中对静态文件路径替换的目标路径
         process.env.JsStaticReplaceDir = path.join(process.env.PublicPath, process.env.StaticAssetsDir, this.option.merge ? '' : this.option.publicStaticFolderName, '/').replace(/\\/g, '/');
         // css 中对静态文件路径替换的目标路径,相对路径时process.env.PublicPath为空字符串，css文件中的静态资源引用是以当前css文件为起点的，所以当配置为相对路径时，不插入StaticAssetsDir,改为'../'
-        process.env.CssStaticReplaceDir = path.join(process.env.PublicPath, process.env.PublicPath ? process.env.StaticAssetsDir : '../', this.option.merge ? '' : this.option.publicStaticFolderName, '/').replace(/\\/g, '/');
+        process.env.CssStaticReplaceDir = path
+            .join(process.env.PublicPath, process.env.PublicPath ? process.env.StaticAssetsDir : '../', this.option.merge ? '' : this.option.publicStaticFolderName, '/')
+            .replace(/\\/g, '/');
         // 拷贝配置文件,生产环境直接将配置文件打包到outputDir目录中，开发环境，则复制到public上
         if (this.option.versionControl)
             copyConfigFile({
@@ -254,28 +256,41 @@ function saveFile(outputDir, assets) {
 }
 // 将文webpackConfig/config中对应当前模式的配置文件拷贝到public中，
 function copyConfigFile({ to, from }) {
-    const PackageConfigFile = path.resolve(from);
+    var data = '';
     const ConfigFile = path.resolve(to);
-    fs.ensureFile(PackageConfigFile).then(() => {
-        var data = fs.readFileSync(PackageConfigFile);
-        if (isProd) {
-            let SITE_CONFIG = '';
-            if (!/window\.SITE_CONFIG/.test(data.toString())) {
-                SITE_CONFIG = 'window.SITE_CONFIG={}';
-            }
-            data = `
-      ${data.toString()}
-      ${SITE_CONFIG}
- // 版本号(年月日时分) 打包时会自动加上
- window.SITE_CONFIG['version'] = '${process.env.StaticAssetsDir}'
- //生产环境可以通过 window.SITE_CONFIG['version']加载指定版本项目
- var script = document.createElement('script')
- script.src = window.SITE_CONFIG['version'] + "/sourceMap.js"
- document.getElementsByTagName('head')[0].appendChild(script)`;
-        }
-        fs.ensureFile(ConfigFile).then(() => {
-            fs.writeFileSync(ConfigFile, data);
+    if (typeof from == 'string') {
+        const PackageConfigFile = path.resolve(from);
+        fs.ensureFileSync(PackageConfigFile);
+        data += fs.readFileSync(PackageConfigFile).toString();
+    }
+    if (Array.isArray(from)) {
+        from.forEach((p, index) => {
+            var _p = path.resolve(p);
+            fs.ensureFileSync(_p);
+            if (index) data += '\n\r';
+            data += fs.readFileSync(_p).toString().trim();
         });
+    }
+    if (isProd) {
+        let SITE_CONFIG = '';
+        if (!/window\.SITE_CONFIG/.test(data)) {
+            SITE_CONFIG = 'window.SITE_CONFIG={}';
+        }
+        data = `
+(function () {
+  ${data}
+  ${SITE_CONFIG}
+// 版本号(年月日时分) 打包时会自动加上
+window.SITE_CONFIG['version'] = '${process.env.StaticAssetsDir}'
+//生产环境可以通过 window.SITE_CONFIG['version']加载指定版本项目
+var script = document.createElement('script')
+script.src = window.SITE_CONFIG['version'] + "/sourceMap.js"
+document.getElementsByTagName('head')[0].appendChild(script)
+})();
+`;
+    }
+    fs.ensureFile(ConfigFile).then(() => {
+        fs.writeFileSync(ConfigFile, data);
     });
 }
 // 拷贝静态static文件
@@ -283,7 +298,7 @@ function copyStaticDir(src, dest) {
     fs.pathExists(src).then((exists) => {
         if (exists) {
             fs.ensureDir(dest).then(() => {
-                fs.copy(src, dest, function () { });
+                fs.copy(src, dest, function () {});
             });
         }
     });
