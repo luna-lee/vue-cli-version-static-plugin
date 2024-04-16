@@ -1,6 +1,6 @@
 {
   "name": "vue-cli-version-static-plugin",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "description": "",
   "main": "dist/index.js",
   "homepage": "https://github.com/luna-lee/vue-cli-version-static-plugin.git",

@@ -6,6 +6,7 @@
 名称|类型|说明|默认值
 ---|---|---|--
 publicStaticFolderName|string|public文件夹下静态资源目录文件夹名。若有嵌套则需要将父文件夹名也带上，如：'project/static'|static
+loadMethod|string|脚本加载方式，async/defer|''
 merge|boolean|public文件夹下静态资源是否与assets打包后的文件合并。不合并则单独存放一个文件夹，文件夹结构和名称与public中一致。 |true
 versionControl|boolean|开启版本控制开启，开启后会自动复制指定路径上的config文件到public中，同时生成sourcMap文件，关闭htmlplugin的inject功能， |true 
 to|string|config 配置文件将要拷贝的路径。在versionControl为true时起作用 |public/config/index.js
