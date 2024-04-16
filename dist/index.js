@@ -226,7 +226,7 @@ function saveFile(outputDir, assets, loadMethod) {
    `;
     let customLoad = ''
     if (loadMethod)
-        customLoad = `tag.setAttribute(${loadMethod}, true);`
+        customLoad = `tag.setAttribute('${loadMethod}', true);`
     let loadSource = `
           var sourceMap= ${JSON.stringify(assets)};
           (function () {
